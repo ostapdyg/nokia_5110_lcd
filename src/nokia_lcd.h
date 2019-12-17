@@ -47,94 +47,64 @@ void lcd_init(void);
 *Send one byte to lcd
 *@byte data to send
 *@ is_data 1 to send data, 0 to send command
+*@visible: 1 to show on lcd, 0 otherwise
 */
 void lcd_send(uint8_t byte, uint8_t is_data);
 
-/*
- * Clear buffer
- */
-void lcd_buf_clear();
 
 /*
  * Clear screen
+ * @visible: 1 to show on lcd, 0 otherwise
  */
-void lcd_clear();
-
-/**
- * Set buffer cursor position
- * @x: horizontal position
- * @y: vertical position
- */
-void lcd_buf_set_cursor(uint8_t x, uint8_t y);
+void lcd_clear(uint8_t visible);
 
 /**
  * Set lcd cursor position
  * @x: horizontal position
  * @y: vertical position
+ * @visible: 1 to show on lcd, 0 otherwise
  */
-void lcd_set_cursor(uint8_t x, uint8_t y);
+void lcd_set_cursor(uint8_t x, uint8_t y, uint8_t visible);
 
 
-#define lcd_buf_new_line() lcd_buf_set_cursor(nokia_lcd.cursor_x, (nokia_lcd.cursor_y+1)%LCDHEIGHT)
-#define lcd_new_line() lcd_set_cursor(nokia_lcd.cursor_x, (nokia_lcd.cursor_y+1)%LCDHEIGHT)
-#define lcd_buf_car_return() lcd_buf_set_cursor(0, nokia_lcd.cursor_y);
-#define lcd_car_return() lcd_set_cursor(0, nokia_lcd.cursor_y);
+#define lcd_new_line() lcd_set_cursor(nokia_lcd.cursor_x, (nokia_lcd.cursor_y+1)%LCDHEIGHT, visible)
+
+#define lcd_car_return() lcd_set_cursor(0, nokia_lcd.cursor_y, visible);
 
 
 /**
- * Set single pixel in buffer
+ * Set single pixel to 1 or 0
  * @x: horizontal pozition
  * @y: vertical position
  * @value: show/hide pixel
+ * @visible: 1 to show on lcd, 0 otherwise
  */
-void lcd_buf_set_pixel(uint8_t x, uint8_t y, uint8_t value);
-
-/**
- *Set a single 8-pixel collumn to buffer
- *@byte: data to write, MSE top.
- */
-void lcd_buf_write_col(const uint8_t byte);
+void lcd_set_pixel(uint8_t x, uint8_t y, uint8_t value, uint8_t visible);
 
 /**
  *Set a single 8-pixel collumn to lcd
  *@byte: data to write, MSE top.
+ *@visible: 1 to show on lcd, 0 otherwise
  */
-void lcd_write_col(const uint8_t byte);
+void lcd_write_col(const uint8_t byte, uint8_t visible);
 
-
-/**
- * Write a 5x8 bitmap to buffer
- * @btmp: array of 5 bytes
- */
-void lcd_buf_write_char_btmp(const uint8_t *btmp);
 
 /**
  * Write a 5x8 bitmap on lcd
  * @btmp: array of 5 bytes
+ *@visible: 1 to show on lcd, 0 otherwise
  */
-void lcd_write_char_btmp(const uint8_t *btmp);
-
-/**
- * Write single char as a 5x8 bitmap to buffer
- * @code: char code
- */
-void lcd_buf_write_char(char c);
+void lcd_write_char_btmp(const uint8_t *btmp, uint8_t visible);
 
 /**
  * Draw single char as a 5x8 bitmap on display
  * @code: char code
+ *@visible: 1 to show on lcd, 0 otherwise
  */
-void lcd_write_char(char c);
+void lcd_write_char(char c, uint8_t visible);
 
-/**
- * Write string to buffer. 
- * Example: writeString("abc",3);
- * @str: sending string
- * @scale: size of text
- */
-void lcd_buf_write_string(const char *str);
 
-void lcd_write_string(const char *str);
+void lcd_write_string(const char *str, uint8_t visible);
 
 /**
  * Render screen to display

@@ -3,7 +3,7 @@
 #include "spi.h"
 #include "usb_host.h"
 #include "gpio.h"
-#include "nokialcd.h"
+#include "NokiaLCD/src/nokia_lcd.h"
 
 const uint8_t CHAR_BITMAPS[96][5] = {
 	{0x00, 0x00, 0x00, 0x00, 0x00}, // 20 space
@@ -163,6 +163,7 @@ void lcd_init(void)
 	lcd_send_cmd(0x80); //Place the cursor at the origin
 	lcd_send_cmd(0x40);
 }
+
 void lcd_buf_clear(void)
 {
 	lcd_buf_set_cursor(0, 0);
@@ -171,13 +172,15 @@ void lcd_buf_clear(void)
 		lcd_buf_write_col(0x00);
 }
 
-void lcd_clear(void)
+void lcd_clear(uint8_t visible)
 {
-	lcd_buf_clear();
-	lcd_render_all();
+	lcd_set_cursor(0, 0, visible);
+	/* Clear everything (504 bytes = 84cols * 48 rows / 8 bits) */
+	for (int i = 0; i < 504; i++)
+		lcd_write_col(0x00, visible);
 }
 
-void lcd_buf_set_pixel(uint8_t x, uint8_t y, uint8_t value)
+void lcd_set_pixel(uint8_t x, uint8_t y, uint8_t value, uint8_t visible)
 {
 	if (value)
 	{
@@ -187,67 +190,37 @@ void lcd_buf_set_pixel(uint8_t x, uint8_t y, uint8_t value)
 	{
 		nokia_lcd.buffer[LCDWIDTH * y / 8 + x] ^= 1 << (y % 8);
 	}
+	if(visible) lcd_send_data(nokia_lcd.buffer[LCDWIDTH * y / 8 + x]);
 }
 
-void lcd_buf_write_col(uint8_t byte)
+void lcd_write_col(uint8_t byte, uint8_t visible)
 {
 	nokia_lcd.buffer[LCDWIDTH * nokia_lcd.cursor_y + nokia_lcd.cursor_x] = byte;
 	nokia_lcd.cursor_y = (nokia_lcd.cursor_y + (nokia_lcd.cursor_x + 1) / LCDWIDTH) % (LCDHEIGHT / 8);
 	nokia_lcd.cursor_x = (nokia_lcd.cursor_x + 1) % LCDWIDTH;
+	if(visible) lcd_send_data(byte);
 }
 
-void lcd_write_col(uint8_t byte)
-{
-	lcd_buf_write_col(byte);
-	lcd_send_data(byte);
-}
-
-void lcd_buf_set_cursor(uint8_t x, uint8_t y)
+void lcd_set_cursor(uint8_t x, uint8_t y, uint8_t visible)
 {
 	nokia_lcd.cursor_y = y;
 	nokia_lcd.cursor_x = x;
+	if(visible){
+		lcd_send_cmd(0x40 | y);
+		lcd_send_cmd(0x80 | x);}
 }
 
-void lcd_set_cursor(uint8_t x, uint8_t y)
-{
-	lcd_buf_set_cursor(x, y);
-	lcd_send_cmd(0x40 | y);
-	lcd_send_cmd(0x80 | x);
-}
-
-void lcd_buf_write_char_btmp(const uint8_t *btmp)
+void lcd_write_char_btmp(const uint8_t *btmp, uint8_t visible)
 {
 	for (uint8_t i = 0; i < 5; i++)
 	{
-		lcd_buf_write_col(btmp[i]);
+		lcd_write_col(btmp[i], visible);
 	}
-	lcd_buf_write_col(0);
-}
-void lcd_write_char_btmp(const uint8_t *btmp)
-{
-	for (uint8_t i = 0; i < 5; i++)
-	{
-		lcd_write_col(btmp[i]);
-	}
-	lcd_write_col(0);
+	lcd_write_col(0, visible);
 }
 
-void lcd_buf_write_char(char c)
-{
-	switch (c)
-	{
-	case '\n':
-		lcd_buf_new_line();
-		break;
-	case '\r':
-		lcd_buf_car_return();
-		break;
-	default:
-		lcd_buf_write_char_btmp(CHAR_BITMAPS[c - 0x20]);
-	}
-}
 
-void lcd_write_char(char c)
+void lcd_write_char(char c, uint8_t visible)
 {
 	switch (c)
 	{
@@ -258,24 +231,15 @@ void lcd_write_char(char c)
 		lcd_car_return();
 		break;
 	default:
-		lcd_write_char_btmp(CHAR_BITMAPS[c - 0x20]);
+		lcd_write_char_btmp(CHAR_BITMAPS[c - 0x20], visible);
 	}
 }
 
-void lcd_buf_write_string(const char *str)
+void lcd_write_string(const char *str, uint8_t visible)
 {
 	while (!(*str == 0))
 	{
-		lcd_buf_write_char(*str);
-		str += 1;
-	}
-}
-
-void lcd_write_string(const char *str)
-{
-	while (!(*str == 0))
-	{
-		lcd_write_char(*str);
+		lcd_write_char(*str, visible);
 		str += 1;
 	}
 }
